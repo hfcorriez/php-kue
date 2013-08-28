@@ -1,0 +1,22 @@
+{
+  "name": "kue/kue",
+  "description": "Kue",
+  "keywords": ["kue", "background jobs", "jobs queue"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Corrie Zhao",
+      "email": "hfcorriez@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.3.9",
+    "pagon/fiber": "0.3.0",
+    "pagon/childprocess": "0.0.1"
+  },
+  "autoload": {
+    "psr-0": {
+      "Kue": "lib/"
+    }
+  }
+}

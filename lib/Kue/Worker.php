@@ -22,9 +22,9 @@ class Worker extends EventEmitter
     protected $client;
 
     /**
-     * @var int
+     * @var int mill seconds
      */
-    protected $interval = 1;
+    protected $interval = 1000000;
 
     /**
      * Create worker
@@ -49,7 +49,7 @@ class Worker extends EventEmitter
             if ($job) {
                 $this->process($job);
             }
-            sleep($this->interval);
+            usleep($this->interval);
         }
     }
 
@@ -95,14 +95,14 @@ class Worker extends EventEmitter
      */
     public function pop($key)
     {
-        $this->client->multi();
+        $ret = $this->client->zrevrangebyscore($key, time() * 1000, '-inf', array('limit' => array(0, 1)));
 
-        $this->client->zrange($key, 0, 0);
-        $this->client->zremrangebyrank($key, 0, 0);
+        if (!$ret) return false;
 
-        $result = $this->client->exec();
+        // Delete error will lose the control job
+        if (!$this->client->zrem($key, $ret[0])) return false;
 
-        return $result[0][0];
+        return $ret[0];
     }
 
     /**
@@ -112,29 +112,17 @@ class Worker extends EventEmitter
      */
     public function getJob()
     {
-        // Support no type worker
-        if (!$this->type) {
-            if (!$types = $this->queue->types()) return false;
-
-            foreach ($types as $i => $type) {
-                $types[$i] = 'q:' . $type . ':jobs';
-            }
-        } else {
-            $types = 'q:' . $this->type . ':jobs';
-        }
-
-        try {
-            if (!$ret = $this->client->blpop($types, 5)) return false;
-        } catch (\Exception $e) {
+        if (!$id = $this->pop('q:jobs:inactive')) {
             return false;
         }
 
-        $arr = explode(':', $ret[0]);
-
-        if (!$id = $this->pop('q:jobs:' . $arr[1] . ':inactive')) {
+        if (!$job = Job::load($id)) {
             return false;
         }
 
-        return Job::load($id);
+        // Compatible for the node.js
+        // $this->client->rpop('q:' . $job->type . ':jobs');
+
+        return $job;
     }
 }

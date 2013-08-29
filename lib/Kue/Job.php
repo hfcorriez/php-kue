@@ -29,7 +29,7 @@ class Job extends Fiber
         'updated_at'         => '',
         'failed_at'          => '',
         'duration'           => 0,
-        'delay'              => 0,
+        'timing'             => 0,
         'attempts'           => 0,
         'attempts_remaining' => 1,
         'attempts_max'       => 1
@@ -71,6 +71,7 @@ class Job extends Fiber
      *
      * @param array $type
      * @param array $data
+     * @return \Kue\Job
      */
     public function __construct($type, $data = array())
     {
@@ -122,15 +123,29 @@ class Job extends Fiber
     }
 
     /**
+     * Timing job
+     *
+     * @param int|string $time
+     */
+    public function timing($time)
+    {
+        if (!is_numeric($time)) {
+            $time = strtotime($time);
+        }
+
+        $this->injectors['timing'] = $time * 1000;
+        $this->injectors['state'] = 'inactive';
+    }
+
+    /**
      * Set job delay
      *
-     * @param int $ms
+     * @param int $s
      * @return $this
      */
-    public function delay($ms)
+    public function delay($s)
     {
-        $this->injectors['delay'] = $ms;
-        $this->injectors['state'] = 'delayed';
+        $this->timing(time() + $s);
         return $this;
     }
 
@@ -232,13 +247,14 @@ class Job extends Fiber
     {
         $this->emit($state);
         $this->removeState();
+        $score = $this->injectors['timing'] + $this->injectors['priority'];
         $this->set('state', $state);
-        $this->client->zadd('q:jobs', $this->injectors['priority'], $this->injectors['id']);
-        $this->client->zadd('q:jobs:' . $state, $this->injectors['priority'], $this->injectors['id']);
-        $this->client->zadd('q:jobs:' . $this->injectors['type'] . ':' . $state, $this->injectors['priority'], $this->injectors['id']);
+        $this->client->zadd('q:jobs', $score, $this->injectors['id']);
+        $this->client->zadd('q:jobs:' . $state, $score, $this->injectors['id']);
+        $this->client->zadd('q:jobs:' . $this->injectors['type'] . ':' . $state, $score, $this->injectors['id']);
 
         // Set inactive job to waiting list
-        if ('inactive' == $state) $this->client->lpush('q:' . $this->injectors['type'] . ':jobs', 1);
+        // if ('inactive' == $state) $this->client->lpush('q:' . $this->injectors['type'] . ':jobs', 1);
 
         $this->set('updated_at', time());
         return $this;

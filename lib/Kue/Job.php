@@ -247,7 +247,12 @@ class Job extends Fiber
     {
         $this->emit($state);
         $this->removeState();
-        $score = $this->injectors['timing'] + $this->injectors['priority'];
+
+        $now = time();
+
+        // Keep "FIFO!"
+        $score = ($this->injectors['timing'] ? $this->injectors['timing'] : $now * 100 - $now) + $this->injectors['priority'];
+
         $this->set('state', $state);
         $this->client->zadd('q:jobs', $score, $this->injectors['id']);
         $this->client->zadd('q:jobs:' . $state, $score, $this->injectors['id']);
@@ -256,7 +261,7 @@ class Job extends Fiber
         // Set inactive job to waiting list
         // if ('inactive' == $state) $this->client->lpush('q:' . $this->injectors['type'] . ':jobs', 1);
 
-        $this->set('updated_at', time());
+        $this->set('updated_at', $now);
         return $this;
     }
 

@@ -27,6 +27,11 @@ class Worker extends EventEmitter
     protected $interval = 1000000;
 
     /**
+     * @var Worker id
+     */
+    public $id;
+
+    /**
      * Create worker
      *
      * @param Kue    $queue
@@ -37,6 +42,7 @@ class Worker extends EventEmitter
         $this->queue = $queue;
         $this->type = $type;
         $this->client = $queue->client;
+        $this->id = (function_exists('gethostname') ? gethostname() : php_uname('n')) . ':' . getmypid() . ($type ? ':' . $type : '');
     }
 
     /**
@@ -61,6 +67,7 @@ class Worker extends EventEmitter
     public function process(Job $job)
     {
         $job->active();
+        $job->set('worker', $this->id);
         try {
             $start = time();
             $this->queue->emit('process:' . $job->type, $job);

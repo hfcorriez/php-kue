@@ -45,6 +45,12 @@ class Job extends Fiber
      */
     public $client;
 
+    /**
+     * Load job
+     *
+     * @param string $id
+     * @return bool|Job
+     */
     public static function load($id)
     {
         $client = Kue::$instance->client;
@@ -54,12 +60,18 @@ class Job extends Fiber
         }
 
         $data['data'] = json_decode($data['data'], true);
-        $job = new self($data['type'], $data['data']);
+        $job = new self($data['type'], null);
         $job->append($data);
 
         return $job;
     }
 
+    /**
+     * Create job
+     *
+     * @param array $type
+     * @param array $data
+     */
     public function __construct($type, $data = array())
     {
         $this->injectors['id'] = sha1(uniqid());
@@ -71,6 +83,11 @@ class Job extends Fiber
         $this->client = Kue::$instance->client;
     }
 
+    /**
+     * Set priority
+     *
+     * @param string|int $pri
+     */
     public function priority($pri)
     {
         if (is_numeric($pri)) {
@@ -80,6 +97,11 @@ class Job extends Fiber
         }
     }
 
+    /**
+     * Attempt by function
+     *
+     * @param $fn
+     */
     public function attempt($fn)
     {
         $max = $this->get('attempts_max');
@@ -87,6 +109,11 @@ class Job extends Fiber
         $fn(max(0, $max - $attempts), $attempts, $max);
     }
 
+    /**
+     * Set max attempts
+     *
+     * @param int $num
+     */
     public function attempts($num)
     {
         $plus = $num - $this->injectors['attempts_max'];
@@ -94,6 +121,12 @@ class Job extends Fiber
         $this->injectors['attempts_remaining'] += $plus;
     }
 
+    /**
+     * Set job delay
+     *
+     * @param int $ms
+     * @return $this
+     */
     public function delay($ms)
     {
         $this->injectors['delay'] = $ms;
@@ -101,15 +134,28 @@ class Job extends Fiber
         return $this;
     }
 
+    /**
+     * Set progress
+     *
+     * @param int|float $pt
+     */
     public function progress($pt)
     {
-        $this->set('progress', min(100, $pt * 100));
+        $this->set('progress', min(100, ($pt < 1 ? $pt * 100 : $pt)));
         $this->set('updated_at', time());
     }
 
+    /**
+     * Set error
+     *
+     * @param string $error
+     * @return $this
+     */
     public function error($error)
     {
         if (!$error) return $this->injectors['error'];
+
+        $this->emit('error', $error);
 
         if ($error instanceof \Exception) {
             $str = get_class($error) . ' Error on ' . $error->getFile() . ' ' . $error->getLine();
@@ -123,26 +169,51 @@ class Job extends Fiber
         return $this;
     }
 
+    /**
+     * Set complete
+     *
+     * @return mixed
+     */
     public function complete()
     {
         return $this->set('progress', 100)->state('complete');
     }
 
+    /**
+     * Set failed
+     *
+     * @return $this
+     */
     public function failed()
     {
         return $this->state('failed');
     }
 
+    /**
+     * Set inactive
+     *
+     * @return $this
+     */
     public function inactive()
     {
         return $this->state('inactive');
     }
 
+    /**
+     * Set active
+     *
+     * @return $this
+     */
     public function active()
     {
         return $this->state('active');
     }
 
+    /**
+     * Remove all state from sorted sets
+     *
+     * @return $this
+     */
     public function removeState()
     {
         $this->client->zrem('q:jobs', $this->injectors['id']);
@@ -151,22 +222,38 @@ class Job extends Fiber
         return $this;
     }
 
+    /**
+     * Change state
+     *
+     * @param $state
+     * @return $this
+     */
     public function state($state)
     {
+        $this->emit($state);
         $this->removeState();
         $this->set('state', $state);
         $this->client->zadd('q:jobs', $this->injectors['priority'], $this->injectors['id']);
         $this->client->zadd('q:jobs:' . $state, $this->injectors['priority'], $this->injectors['id']);
         $this->client->zadd('q:jobs:' . $this->injectors['type'] . ':' . $state, $this->injectors['priority'], $this->injectors['id']);
+
+        // Set inactive job to waiting list
         if ('inactive' == $state) $this->client->lpush('q:' . $this->injectors['type'] . ':jobs', 1);
+
         $this->set('updated_at', time());
         return $this;
     }
 
+    /**
+     * Update the job
+     *
+     * @return $this|bool
+     */
     public function update()
     {
         if (!$this->injectors['id']) return false;
 
+        $this->emit('update');
         $this->injectors['updated_at'] = time();
 
         $job = $this->injectors;
@@ -177,18 +264,38 @@ class Job extends Fiber
         return $this;
     }
 
+    /**
+     * Write job log
+     *
+     * @param string $str
+     * @return $this
+     */
     public function log($str)
     {
+        $this->emit('log', $str);
         $this->client->rpush('q:job:' . $this->injectors['id'] . ':log', $str);
         $this->set('updated_at', time());
         return $this;
     }
 
+    /**
+     * Get job property
+     *
+     * @param string $key
+     * @return mixed
+     */
     public function get($key)
     {
         return $this->client->hget('q:job:' . $this->injectors['id'], $key);
     }
 
+    /**
+     * Set job property
+     *
+     * @param string $key
+     * @param string $val
+     * @return $this
+     */
     public function set($key, $val)
     {
         $this->injectors[$key] = $val;
@@ -196,8 +303,14 @@ class Job extends Fiber
         return $this;
     }
 
+    /**
+     * Save the job
+     *
+     * @return $this
+     */
     public function save()
     {
+        $this->emit('save');
         $this->update();
 
         $this->client->sadd('q:job:types', $this->injectors['type']);

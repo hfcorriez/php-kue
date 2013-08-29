@@ -6,27 +6,48 @@ use Pagon\EventEmitter;
 
 class Worker extends EventEmitter
 {
+    /**
+     * @var Kue
+     */
     protected $queue;
 
+    /**
+     * @var string
+     */
     protected $type;
 
+    /**
+     * @var \Redis
+     */
     protected $client;
 
+    /**
+     * @var int
+     */
     protected $interval = 1;
 
-    public function __construct($queue, $type)
+    /**
+     * Create worker
+     *
+     * @param Kue    $queue
+     * @param string $type
+     */
+    public function __construct($queue, $type = null)
     {
         $this->queue = $queue;
         $this->type = $type;
         $this->client = $queue->client;
     }
 
-    public function start($fn)
+    /**
+     * Start worker
+     */
+    public function start()
     {
         while (1) {
             $job = $this->getJob();
             if ($job) {
-                $this->process($job, $fn);
+                $this->process($job);
             }
             sleep($this->interval);
         }
@@ -35,34 +56,43 @@ class Worker extends EventEmitter
     /**
      * Process the job
      *
-     * @param Job      $job
-     * @param \Closure $fn
+     * @param Job $job
      */
-    public function process(Job $job, $fn)
+    public function process(Job $job)
     {
         $job->active();
         try {
             $start = time();
-            $fn($job);
+            $this->queue->emit('process:' . $job->type, $job);
             $duration = time() - $start;
             $job->set('duration', $duration);
         } catch (\Exception $e) {
-            $this->failed($job, $e, $fn);
+            $this->failed($job, $e);
             return;
         }
         return;
     }
 
-    public function failed(Job $job, $error, $fn)
+    /**
+     * Failed trigger
+     *
+     * @param Job               $job
+     * @param string|\Exception $error
+     */
+    public function failed(Job $job, $error)
     {
         $job->error($error);
-        $that = $this;
-        $job->attempt(function ($remaining) use ($job, $that, $fn) {
+        $job->attempt(function ($remaining) use ($job) {
             $remaining ? $job->inactive() : $job->failed();
-            $that->start($fn);
         });
     }
 
+    /**
+     * Pop a job
+     *
+     * @param string $key
+     * @return mixed
+     */
     public function pop($key)
     {
         $this->client->multi();
@@ -75,15 +105,33 @@ class Worker extends EventEmitter
         return $result[0][0];
     }
 
+    /**
+     * Get job
+     *
+     * @return bool|Job
+     */
     public function getJob()
     {
+        // Support no type worker
+        if (!$this->type) {
+            if (!$types = $this->queue->types()) return false;
+
+            foreach ($types as $i => $type) {
+                $types[$i] = 'q:' . $type . ':jobs';
+            }
+        } else {
+            $types = 'q:' . $this->type . ':jobs';
+        }
+
         try {
-            $this->client->blpop('q:' . $this->type . ':jobs', 0);
+            if (!$ret = $this->client->blpop($types, 5)) return false;
         } catch (\Exception $e) {
             return false;
         }
 
-        if (!$id = $this->pop('q:jobs:' . $this->type . ':inactive')) {
+        $arr = explode(':', $ret[0]);
+
+        if (!$id = $this->pop('q:jobs:' . $arr[1] . ':inactive')) {
             return false;
         }
 

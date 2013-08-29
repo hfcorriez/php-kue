@@ -69,9 +69,13 @@ class Worker extends EventEmitter
         $job->active();
         $job->set('worker', $this->id);
         try {
-            $start = time();
+            $start = microtime(true);
             $this->queue->emit('process:' . $job->type, $job);
-            $duration = time() - $start;
+
+            // Retry when failed
+            if ($job->state == 'failed') throw new \Exception("failed to attempts");
+
+            $duration = number_format(microtime(true) - $start, 3, '.', '');
             $job->set('duration', $duration);
         } catch (\Exception $e) {
             $this->failed($job, $e);

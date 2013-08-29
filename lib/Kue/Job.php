@@ -18,21 +18,20 @@ class Job extends Fiber
     );
 
     protected $injectors = array(
-        'id'                 => null,
-        'type'               => null,
-        'data'               => array(),
-        'priority'           => 0,
-        'progress'           => 0,
-        'state'              => 'inactive',
-        'error'              => '',
-        'created_at'         => '',
-        'updated_at'         => '',
-        'failed_at'          => '',
-        'duration'           => 0,
-        'timing'             => 0,
-        'attempts'           => 0,
-        'attempts_remaining' => 1,
-        'attempts_max'       => 1
+        'id'           => null,
+        'type'         => null,
+        'data'         => array(),
+        'priority'     => 0,
+        'progress'     => 0,
+        'state'        => 'inactive',
+        'error'        => '',
+        'created_at'   => '',
+        'updated_at'   => '',
+        'failed_at'    => '',
+        'duration'     => 0,
+        'timing'       => 0,
+        'attempts'     => 0,
+        'max_attempts' => 1
     );
 
     /**
@@ -105,9 +104,9 @@ class Job extends Fiber
      */
     public function attempt($fn)
     {
-        $max = $this->get('attempts_max');
+        $max = $this->get('max_attempts');
         $attempts = $this->client->hincrby('q:job:' . $this->injectors['id'], 'attempts', 1);
-        $fn(max(0, $max - $attempts), $attempts, $max);
+        $fn(max(0, $max - $attempts + 1), $attempts - 1, $max);
     }
 
     /**
@@ -117,9 +116,8 @@ class Job extends Fiber
      */
     public function attempts($num)
     {
-        $plus = $num - $this->injectors['attempts_max'];
-        $this->injectors['attempts_max'] += $plus;
-        $this->injectors['attempts_remaining'] += $plus;
+        $plus = $num - $this->injectors['max_attempts'];
+        $this->injectors['max_attempts'] += $plus;
     }
 
     /**

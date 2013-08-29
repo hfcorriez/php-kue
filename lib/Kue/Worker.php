@@ -119,7 +119,7 @@ class Worker extends EventEmitter
      */
     public function getJob()
     {
-        if (!$id = $this->pop('q:jobs:inactive')) {
+        if (!$id = $this->pop('q:jobs:' . ($this->type ? $this->type . ':' : '') . 'inactive')) {
             return false;
         }
 

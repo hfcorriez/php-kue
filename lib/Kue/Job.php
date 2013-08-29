@@ -77,7 +77,7 @@ class Job extends Fiber
         $this->injectors['id'] = sha1(uniqid());
         $this->injectors['type'] = $type;
         $this->injectors['data'] = $data;
-        $this->injectors['created_at'] = time();
+        $this->injectors['created_at'] = Util::now();
 
         $this->queue = Kue::$instance;
         $this->client = Kue::$instance->client;
@@ -164,7 +164,7 @@ class Job extends Fiber
     public function progress($pt)
     {
         $this->set('progress', min(100, ($pt < 1 ? $pt * 100 : $pt)));
-        $this->set('updated_at', time());
+        $this->set('updated_at', Util::now());
     }
 
     /**
@@ -187,7 +187,7 @@ class Job extends Fiber
         }
 
         $this->set('error', $str);
-        $this->set('failed_at', time());
+        $this->set('failed_at', Util::now());
         return $this;
     }
 
@@ -255,10 +255,10 @@ class Job extends Fiber
         $this->emit($state);
         $this->removeState();
 
-        $now = time();
+        $time = time();
 
         // Keep "FIFO!"
-        $score = ($this->injectors['timing'] ? $this->injectors['timing'] : $now * 100 - $now) + $this->injectors['priority'];
+        $score = ($this->injectors['timing'] ? $this->injectors['timing'] : $time * 100 - $time) + $this->injectors['priority'];
 
         $this->set('state', $state);
         $this->client->zadd('q:jobs', $score, $this->injectors['id']);
@@ -268,7 +268,7 @@ class Job extends Fiber
         // Set inactive job to waiting list
         if ($this->queue->originalMode() && 'inactive' == $state) $this->client->lpush('q:' . $this->injectors['type'] . ':jobs', 1);
 
-        $this->set('updated_at', $now);
+        $this->set('updated_at', Util::now());
         return $this;
     }
 
@@ -282,7 +282,7 @@ class Job extends Fiber
         if (!$this->injectors['id']) return false;
 
         $this->emit('update');
-        $this->injectors['updated_at'] = time();
+        $this->injectors['updated_at'] = Util::now();
 
         $job = $this->injectors;
         $job['data'] = json_encode($job['data']);
@@ -302,7 +302,7 @@ class Job extends Fiber
     {
         $this->emit('log', $str);
         $this->client->rpush('q:job:' . $this->injectors['id'] . ':log', $str);
-        $this->set('updated_at', time());
+        $this->set('updated_at', Util::now());
         return $this;
     }
 

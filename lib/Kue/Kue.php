@@ -52,6 +52,7 @@ class Kue extends Fiber
      * Create queue
      *
      * @param array $options
+     * @return Kue
      */
     public function __construct(array $options = array())
     {
@@ -204,5 +205,4 @@ class Kue extends Fiber
     {
         return $this->state('active');
     }
-
 }

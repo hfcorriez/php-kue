@@ -69,13 +69,13 @@ class Worker extends EventEmitter
         $job->active();
         $job->set('worker', $this->id);
         try {
-            $start = microtime(true);
+            $start = Util::now();
             $this->queue->emit('process:' . $job->type, $job);
 
             // Retry when failed
             if ($job->state == 'failed') throw new \Exception("failed to attempts");
 
-            $duration = number_format(microtime(true) - $start, 3, '.', '');
+            $duration = Util::now() - $start;
             $job->set('duration', $duration);
         } catch (\Exception $e) {
             $this->failed($job, $e);
@@ -106,7 +106,7 @@ class Worker extends EventEmitter
      */
     public function pop($key)
     {
-        $ret = $this->client->zrevrangebyscore($key, time() * 1000, '-inf', array('limit' => array(0, 1)));
+        $ret = $this->client->zrevrangebyscore($key, Util::now(), '-inf', array('limit' => array(0, 1)));
 
         if (!$ret) return false;
 

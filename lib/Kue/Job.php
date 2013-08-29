@@ -173,9 +173,9 @@ class Job extends Fiber
      * @param string $error
      * @return $this
      */
-    public function error($error)
+    public function error($error = null)
     {
-        if (!$error) return $this->injectors['error'];
+        if ($error === null) return $this->injectors['error'];
 
         $this->emit('error', $error);
 

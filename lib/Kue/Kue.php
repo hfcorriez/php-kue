@@ -10,7 +10,8 @@ class Kue extends Fiber
         'host'   => 'localhost',
         'port'   => '6379',
         'db'     => 1,
-        'client' => null
+        'client' => null,
+        'mode'   => false
     );
 
     /**
@@ -65,6 +66,22 @@ class Kue extends Fiber
                 $this->client->select($this->injectors['db']);
             }
         }
+    }
+
+    /**
+     * Enable node mode
+     *
+     * @param boolean $use
+     * @return $this
+     */
+    public function originalMode($use = null)
+    {
+        if ($use === null) {
+            return $this->injectors['mode'] == 'origin';
+        }
+
+        $this->injectors['mode'] = $use ? 'origin' : false;
+        return $this;
     }
 
     /**

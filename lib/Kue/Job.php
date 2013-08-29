@@ -131,19 +131,28 @@ class Job extends Fiber
             $time = strtotime($time);
         }
 
-        $this->injectors['timing'] = $time * 1000;
-        $this->injectors['state'] = 'inactive';
+        if (!$this->queue->originalMode()) {
+            $this->injectors['timing'] = $time * 1000;
+            $this->injectors['state'] = 'inactive';
+        } else {
+            $this->delay($time - time());
+        }
     }
 
     /**
      * Set job delay
      *
-     * @param int $s
+     * @param int $s    Delay time in seconds
      * @return $this
      */
     public function delay($s)
     {
-        $this->timing(time() + $s);
+        if (!$this->queue->originalMode()) {
+            $this->timing(time() + $s);
+        } else {
+            $this->injectors['delay'] = $s * 1000;
+            $this->injectors['state'] = 'delayed';
+        }
         return $this;
     }
 
@@ -257,7 +266,7 @@ class Job extends Fiber
         $this->client->zadd('q:jobs:' . $this->injectors['type'] . ':' . $state, $score, $this->injectors['id']);
 
         // Set inactive job to waiting list
-        // if ('inactive' == $state) $this->client->lpush('q:' . $this->injectors['type'] . ':jobs', 1);
+        if ($this->queue->originalMode() && 'inactive' == $state) $this->client->lpush('q:' . $this->injectors['type'] . ':jobs', 1);
 
         $this->set('updated_at', $now);
         return $this;

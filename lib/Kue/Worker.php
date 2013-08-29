@@ -76,6 +76,7 @@ class Worker extends EventEmitter
             if ($job->state == 'failed') throw new \Exception("failed to attempts");
 
             $duration = Util::now() - $start;
+            $job->complete();
             $job->set('duration', $duration);
         } catch (\Exception $e) {
             $this->failed($job, $e);

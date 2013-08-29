@@ -73,16 +73,16 @@ class Worker extends EventEmitter
             $this->queue->emit('process:' . $job->type, $job);
 
             // Retry when failed
-            if ($job->state == 'failed') throw new \Exception("failed to attempts");
+            if ($job->state == 'failed') throw new AttemptException("failed to attempts");
 
             $duration = Util::now() - $start;
             $job->complete();
             $job->set('duration', $duration);
         } catch (\Exception $e) {
+            if ($e instanceof AttemptException) $e = null;
+
             $this->failed($job, $e);
-            return;
         }
-        return;
     }
 
     /**

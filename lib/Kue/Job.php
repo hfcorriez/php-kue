@@ -255,10 +255,8 @@ class Job extends Fiber
         $this->emit($state);
         $this->removeState();
 
-        $time = time();
-
         // Keep "FIFO!"
-        $score = ($this->injectors['timing'] ? $this->injectors['timing'] : $time * 100 - $time) + $this->injectors['priority'];
+        $score = $this->injectors['timing'] + $this->injectors['priority'];
 
         $this->set('state', $state);
         $this->client->zadd('q:jobs', $score, $this->injectors['id']);

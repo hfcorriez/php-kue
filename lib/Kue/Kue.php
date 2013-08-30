@@ -9,7 +9,7 @@ class Kue extends Fiber
     protected $injectors = array(
         'host'   => 'localhost',
         'port'   => '6379',
-        'db'     => 1,
+        'db'     => 0,
         'client' => null,
         'mode'   => false
     );

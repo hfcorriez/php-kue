@@ -8,13 +8,25 @@ The goal of php-kue is: `Supply a simple and strong way to process the backgroun
 
 # Install
 
-Add `"kue/kue": "*"` to your composer.json, then use
+Add `"kue/kue": "*"` to your composer.json, then using following command install all dependencies.
 
 ```
 composer install
 ```
 
-to install the kue and all dependencies.
+# Overview
+
+- [Create Queue](#create-queue)
+-- [Create with config](#create-with-redis-config)
+- [Node Compatible mode](#node-compatible-mode)
+- [Create job](#create-job)
+-- [Create priority job](#create-job-with-priority)
+-- [Create timing job](#create-job-with-timing)
+-- [Create delayed job](#create-job-with-delay-time)
+-- [Create attempts job](#create-job-with-attempts)
+- [Process job](#process-job)
+-- [Process with type](#Process-given-type)
+-- [Process all](#Process-all-types)
 
 # Usage
 

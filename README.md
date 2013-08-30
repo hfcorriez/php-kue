@@ -18,9 +18,7 @@ to install the kue and all dependencies.
 
 # Usage
 
-## Create Kue
-
-### Simply create
+## Create Queue
 
 ```php
 // Connect to redis "localhost:6379"
@@ -47,8 +45,6 @@ $kue->originalMode(true);
 > The original mode will create job structure same as `Node.js`, The default mode change a little structure because of some reasons for simply using in PHP.
 
 ## Create Job
-
-### Create normal job
 
 ```php
 $kue = Kue::createQueue();
@@ -125,8 +121,6 @@ $kue->create('email', array(
 ```
 
 ## Process job
-
-### Suggest process mode
 
 `Note: $kue->process is blocking`
 

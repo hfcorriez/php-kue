@@ -1,12 +1,12 @@
-Intro
-=======
+# Intro
 
 PHP port of [Kue](https://github.com/LearnBoost/kue/) (Node.js)
 
 Note: `It's under develop now!`
 
-Install
-=======
+The goal of php-kue is: `Supply a simple and strong way to process the background jobs using PHP`
+
+# Install
 
 Add `"kue/kue": "*"` to your composer.json, then use
 
@@ -16,26 +16,25 @@ composer install
 
 to install the kue and all dependencies.
 
-Usage
-=======
+# Usage
 
-Create Kue
--------
+## Create Kue
+
+### Simply create
 
 ```php
 // Connect to redis "localhost:6379"
 $kue = Kue::createQueue();
 ```
 
-or
+### Create with redis config
 
 ```php
 // Connect "redis_server:6379" and select db to "1"
 $kue = Kue::createQueue(array('host' => 'redis_server', 'db' => 1));
 ```
 
-Node Compatible mode
---------
+## Node Compatible mode
 
 In this mode, you can create job using `PHP`, and process job with `Node.js`
 
@@ -47,8 +46,9 @@ $kue->originalMode(true);
 
 > The original mode will create job structure same as `Node.js`, The default mode change a little structure because of some reasons for simply using in PHP.
 
-Create Job
--------
+## Create Job
+
+### Create normal job
 
 ```php
 $kue = Kue::createQueue();
@@ -60,8 +60,7 @@ $kue->create('email', array(
 ))->save();
 ```
 
-Create job with priority
--------
+### Create job with priority
 
 Priority will decide your job process order:
 
@@ -75,8 +74,7 @@ $kue->create('email', array(
 ))->priority('high')->save();
 ```
 
-Create job with timing
--------
+###　Create job with timing
 
 Timing will trigger job at given time, see follow examples:
 
@@ -98,8 +96,7 @@ Timing format is process as [PHP date and time formats](http://php.net/manual/en
 - `2013-09-13 00:00:00`
 - and so on..
 
-Create Job with delay time
--------
+### Create Job with delay time
 
 The follow example will delay job in 3600 seconds:
 
@@ -113,8 +110,7 @@ $kue->create('email', array(
 ))->delay(3600)->save();
 ```
 
-Crete job with attempts
--------
+###　Crete job with attempts
 
 When the job failed, the next example will show how to attempts:
 
@@ -128,8 +124,9 @@ $kue->create('email', array(
 ))->attempts(5)->save();
 ```
 
-Process job
--------
+## Process job
+
+### Suggest process mode
 
 `Note: $kue->process is blocking`
 
@@ -151,8 +148,7 @@ $kue->process();
 
 > I'll supply the daemon script and service in future.
 
-Process given type
--------
+### Process given type
 
 If your want to write a script to process the given type.
 
@@ -183,8 +179,7 @@ $kue->process('email', function($job){
 });
 ```
 
-Process all types
--------
+### Process all types
 
 ```php
 $kue = Kue::createQueue();
@@ -196,8 +191,7 @@ $kue->process(function($job){
 });
 ```
 
-License
-=======
+# License
 
 (The MIT License)
 

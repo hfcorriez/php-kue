@@ -25,8 +25,8 @@ composer install
   - [Create delayed job](#create-job-with-delay-time)
   - [Create attempts job](#create-job-with-attempts)
 - [Process job](#process-job)
-  - [Process with type](#Process-given-type)
-  - [Process all](#Process-all-types)
+  - [Process with type](#process-given-type)
+  - [Process all](#process-all-types)
 
 # Usage
 
@@ -118,7 +118,7 @@ $kue->create('email', array(
 ))->delay(3600)->save();
 ```
 
-###　Crete job with attempts
+###　Create job with attempts
 
 When the job failed, the next example will show how to attempts:
 

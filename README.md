@@ -4,11 +4,11 @@ PHP port of [Kue](https://github.com/LearnBoost/kue/) (Node.js)
 
 Note: `It's under develop now!`
 
-The goal of php-kue is: `Supply a simple and strong way to process the background jobs using PHP`
+The goal is: `Supply a simple and strong way to process the background jobs using PHP`
 
 # Install
 
-Add `"kue/kue": "*"` to your composer.json, then using following command install all dependencies.
+Add `"kue/kue": "*"` to your [composer.json](http://getcomposer.org), then:
 
 ```
 composer install

@@ -196,7 +196,7 @@ $kue->process(function($job){
    log($job->type . ' processed');
 });
 ```
-## Job failure / progress
+### Job failure / progress
 
     // Process the `email` type job
     $kue->on('process:email', function($job){

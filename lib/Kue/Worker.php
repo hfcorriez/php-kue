@@ -107,7 +107,7 @@ class Worker extends EventEmitter
      */
     public function pop($key)
     {
-        $ret = $this->client->zrevrangebyscore($key, Util::now(), '-inf', array('limit' => array(0, 1)));
+        $ret = $this->client->zrevrangebyscore($key, Util::now(), '-inf', ['limit' => [0, 1]]);
 
         if (!$ret) return false;
 
@@ -124,7 +124,7 @@ class Worker extends EventEmitter
      */
     public function getJob()
     {
-        if (!$id = $this->pop('q:jobs:' . ($this->type ? $this->type . ':' : '') . 'inactive')) {
+        if (!$id = $this->pop($this->queue->getKey('jobs:' . ($this->type ? $this->type . ':' : '') . 'inactive'))) {
             return false;
         }
 

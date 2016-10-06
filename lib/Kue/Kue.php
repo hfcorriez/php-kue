@@ -6,13 +6,14 @@ use Pagon\Fiber;
 
 class Kue extends Fiber
 {
-    protected $injectors = array(
+    protected $injectors = [
         'host'   => 'localhost',
         'port'   => '6379',
         'db'     => 0,
         'client' => null,
-        'mode'   => false
-    );
+        'mode'   => false,
+        'prefix' => 'q'
+    ];
 
     /**
      * @var Kue
@@ -30,7 +31,7 @@ class Kue extends Fiber
      * @param array $options
      * @return Kue
      */
-    public static function createQueue(array $options = array())
+    public static function createQueue(array $options = [])
     {
         if (!self::$instance) {
             self::$instance = new self($options);
@@ -54,7 +55,7 @@ class Kue extends Fiber
      * @param array $options
      * @return Kue
      */
-    public function __construct(array $options = array())
+    public function __construct(array $options = [])
     {
         $this->injectors = $options + $this->injectors;
 
@@ -92,7 +93,7 @@ class Kue extends Fiber
      * @param array  $data
      * @return Job
      */
-    public function create($type, array $data = array())
+    public function create($type, array $data = [])
     {
         $this->emit('create', $type, $data);
         return new Job($type, $data);
@@ -128,10 +129,10 @@ class Kue extends Fiber
     public function setting($name, $value = null)
     {
         if ($value) {
-            $this->client->hset('q:settings', $name, $value);
+            $this->client->hset($this->getKey('settings'), $name, $value);
             return $this;
         }
-        return $this->client->hget('q:settings', $name);
+        return $this->client->hget($this->getKey('settings'), $name);
     }
 
     /**
@@ -141,7 +142,7 @@ class Kue extends Fiber
      */
     public function types()
     {
-        return $this->client->smembers('q:job:types');
+        return $this->client->smembers($this->getKey('job:types'));
     }
 
     /**
@@ -152,7 +153,7 @@ class Kue extends Fiber
      */
     public function state($state)
     {
-        return $this->client->zrange('q:jobs:' . $state, 0, -1);
+        return $this->client->zrange($this->getKey('jobs:' . $state), 0, -1);
     }
 
     /**
@@ -163,7 +164,7 @@ class Kue extends Fiber
      */
     public function card($state)
     {
-        return $this->client->zcard('q:jobs:' . $state);
+        return $this->client->zcard($this->getKey('jobs:' . $state));
     }
 
     /**
@@ -204,5 +205,15 @@ class Kue extends Fiber
     public function active()
     {
         return $this->state('active');
+    }
+
+    /**
+     * Add prefix and return key
+     *
+     * @return string
+     */
+    public function getKey($key)
+    {
+        return $this->injectors['prefix'] . ':' . $key;
     }
 }

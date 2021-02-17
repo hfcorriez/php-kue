@@ -196,6 +196,24 @@ $kue->process(function($job){
    log($job->type . ' processed');
 });
 ```
+### Job failure / progress
+
+    // Process the `email` type job
+    $kue->on('process:email', function($job){
+        $data = $job->data
+        $job->progress(50); // communicate progress to queue 1..100
+        if( ! mail($data['to'], $data['subject'], $data['body']) ){
+            // uncaught exception will mark a job as failed and/or increase its attempt-variable
+            throw new Exception("FOO_BAR");
+        }
+    });
+
+optionally you can call the following to modify the job status directly:
+
+* `$job->failed()` 
+* `$job->complete()`
+* `$job->inactive()`
+* `$job->active()` 
 
 # License
 
